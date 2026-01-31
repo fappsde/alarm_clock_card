@@ -68,7 +68,7 @@ describe('Version Consistency Test', () => {
 
   it('should have version in card registration', async () => {
     // Import the card
-    await import('../alarm-clock-card.js');
+    await import('../../alarm-clock-card.js');
 
     // Check window.customCards
     const alarmCard = window.customCards.find(c => c.type === 'alarm-clock-card');
