@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **CRITICAL**: Fixed card not registering in Home Assistant UI editor
+  - Changed Lit import from bare module specifier `from "lit"` to CDN URL
+  - Home Assistant browser environment cannot resolve bare module imports without bundling
+  - Now uses `from "https://cdn.jsdelivr.net/npm/lit@3.1.0/+esm"` for proper module loading
+  - This fix enables the card to appear in the "Add Card" picker in the Lovelace UI editor
+
 ## [1.0.8] - 2026-01-29
 
 ### Fixed - CRITICAL Config Flow Bug
