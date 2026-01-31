@@ -3,6 +3,7 @@
 [![GitHub Release][release-badge]][release-url]
 [![License][license-badge]][license-url]
 [![Tests][tests-badge]][tests-url]
+[![HACS][hacs-badge]][hacs-url]
 
 A beautiful, feature-rich Lovelace custom card for the Alarm Clock integration for Home Assistant.
 
@@ -225,3 +226,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 [license-url]: https://github.com/fappsde/alarm_clock_card/blob/main/LICENSE
 [tests-badge]: https://github.com/fappsde/alarm_clock_card/actions/workflows/test-frontend.yml/badge.svg
 [tests-url]: https://github.com/fappsde/alarm_clock_card/actions/workflows/test-frontend.yml
+[hacs-badge]: https://img.shields.io/badge/HACS-Compatible-41BDF5.svg
+[hacs-url]: https://hacs.xyz
