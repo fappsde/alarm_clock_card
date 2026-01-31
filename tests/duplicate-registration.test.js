@@ -20,7 +20,7 @@ describe('Duplicate Registration Test', () => {
     // Module is already imported (cached), but try again
     let error = null;
     try {
-      await import('../../custom_components/alarm_clock/alarm-clock-card.js');
+      await import('../alarm-clock-card.js');
     } catch (e) {
       error = e;
     }
@@ -61,11 +61,11 @@ describe('Duplicate Registration Test', () => {
 
   it('should maintain element definition across multiple imports', async () => {
     // First import
-    await import('../../custom_components/alarm_clock/alarm-clock-card.js');
+    await import('../alarm-clock-card.js');
     const firstDefinition = customElements.get('alarm-clock-card');
 
     // Second import
-    await import('../../custom_components/alarm_clock/alarm-clock-card.js');
+    await import('../alarm-clock-card.js');
     const secondDefinition = customElements.get('alarm-clock-card');
 
     // Should be the same definition
@@ -85,8 +85,8 @@ describe('Duplicate Registration Test', () => {
 
   it('should protect editor element from duplicate registration', async () => {
     // Import twice
-    await import('../../custom_components/alarm_clock/alarm-clock-card.js');
-    await import('../../custom_components/alarm_clock/alarm-clock-card.js');
+    await import('../alarm-clock-card.js');
+    await import('../alarm-clock-card.js');
 
     // Editor should be defined
     expect(customElements.get('alarm-clock-card-editor')).toBeDefined();
@@ -98,7 +98,7 @@ describe('Duplicate Registration Test', () => {
   it('should handle rapid successive imports', async () => {
     // Simulate rapid HMR-style imports
     const imports = Array(10).fill(null).map(() =>
-      import('../../custom_components/alarm_clock/alarm-clock-card.js')
+      import('../alarm-clock-card.js')
     );
 
     // All should resolve without throwing

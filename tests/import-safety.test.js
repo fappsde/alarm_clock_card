@@ -20,7 +20,7 @@ describe('Import Safety Test', () => {
     // This is the critical test: import should not throw
     let error = null;
     try {
-      await import('../../custom_components/alarm_clock/alarm-clock-card.js');
+      await import('../alarm-clock-card.js');
     } catch (e) {
       error = e;
     }
@@ -29,7 +29,7 @@ describe('Import Safety Test', () => {
 
   it('should complete module evaluation', async () => {
     // Import the module (will return cached version)
-    const module = await import('../../custom_components/alarm_clock/alarm-clock-card.js');
+    const module = await import('../alarm-clock-card.js');
 
     // Module should be defined
     expect(module).toBeDefined();
@@ -65,7 +65,7 @@ describe('Import Safety Test', () => {
     // This is tested by successfully importing it
     let error = null;
     try {
-      await import('../../custom_components/alarm_clock/alarm-clock-card.js');
+      await import('../alarm-clock-card.js');
     } catch (e) {
       error = e;
     }
