@@ -13,4 +13,10 @@ export default defineConfig({
       exclude: ['tests/**', 'node_modules/**'],
     },
   },
+  resolve: {
+    alias: {
+      // Map the CDN URL to local lit package for testing
+      'https://cdn.jsdelivr.net/npm/lit@3.1.0/+esm': 'lit',
+    },
+  },
 });
