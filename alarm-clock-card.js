@@ -6,7 +6,7 @@
  * VERSION: Automatically synced from manifest.json
  */
 
-import { LitElement, html, css } from "lit";
+import { LitElement, html, css } from "https://cdn.jsdelivr.net/npm/lit@3.1.0/+esm";
 
 // Card version - will be replaced by build script with manifest.json version
 const CARD_VERSION = "1.0.8";

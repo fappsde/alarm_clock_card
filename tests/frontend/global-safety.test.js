@@ -50,7 +50,7 @@ describe('Global Safety Test - Frontend Poisoning Prevention', () => {
 
   it('should allow other cards to register after alarm card', async () => {
     // Import alarm card
-    await import('../../custom_components/alarm_clock/alarm-clock-card.js');
+    await import('../../alarm-clock-card.js');
 
     // Define multiple other cards
     class Card1 extends LitElement {}
@@ -71,7 +71,7 @@ describe('Global Safety Test - Frontend Poisoning Prevention', () => {
   it('should not pollute global scope', async () => {
     const beforeKeys = Object.keys(window);
 
-    await import('../../custom_components/alarm_clock/alarm-clock-card.js');
+    await import('../../alarm-clock-card.js');
 
     const afterKeys = Object.keys(window);
 
@@ -109,7 +109,7 @@ describe('Global Safety Test - Frontend Poisoning Prevention', () => {
 
   it('should allow card registry operations by other cards', async () => {
     // Import alarm card
-    await import('../../custom_components/alarm_clock/alarm-clock-card.js');
+    await import('../../alarm-clock-card.js');
 
     // Simulate another card adding to customCards
     window.customCards.push({
@@ -181,7 +181,7 @@ describe('Global Safety Test - Frontend Poisoning Prevention', () => {
     customElements.define('pre-existing-card', PreExistingCard);
 
     // Import alarm card
-    await import('../../custom_components/alarm_clock/alarm-clock-card.js');
+    await import('../../alarm-clock-card.js');
 
     // Pre-existing element should still work
     expect(customElements.get('pre-existing-card')).toBe(PreExistingCard);

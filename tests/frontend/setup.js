@@ -27,7 +27,7 @@ if (typeof window !== 'undefined') {
 // Import the card once before all tests
 // This ensures it's loaded and registered
 beforeAll(async () => {
-  await import('../../custom_components/alarm_clock/alarm-clock-card.js');
+  await import('../../alarm-clock-card.js');
 });
 
 // Note: We do NOT clear window.customCards or customElements between tests
