@@ -35,7 +35,7 @@ jobs:
         run: test -f package-lock.json || (echo "❌ package-lock.json missing! Run 'npm install' and commit it." && exit 1)
 
       - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
@@ -69,7 +69,7 @@ jobs:
         run: test -f package-lock.json || (echo "❌ package-lock.json missing! Run 'npm install' and commit it." && exit 1)
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: "npm"
@@ -108,7 +108,7 @@ jobs:
         run: test -f package-lock.json || (echo "❌ package-lock.json missing! Run 'npm install' and commit it." && exit 1)
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: "npm"
