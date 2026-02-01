@@ -44,6 +44,7 @@ class AlarmClockCard extends LitElement {
       _viewMode: { type: String },
       _selectedAlarmId: { type: String },
       _showTimePicker: { type: Boolean },
+      _showNamePicker: { type: Boolean },
     };
   }
 
@@ -55,6 +56,7 @@ class AlarmClockCard extends LitElement {
     this._viewMode = "list"; // "list" or "editor"
     this._selectedAlarmId = null;
     this._showTimePicker = false;
+    this._showNamePicker = false;
   }
 
   static getConfigElement() {
@@ -88,6 +90,15 @@ class AlarmClockCard extends LitElement {
   setConfig(config) {
     // Don't throw error for missing entity during editing
     // Just store the config and show a helpful message in render
+    
+    // Check if entity changed (switching devices) - reset selection
+    const oldEntity = this.config?.entity;
+    const newEntity = config?.entity;
+    if (oldEntity && newEntity && oldEntity !== newEntity) {
+      // Entity changed, reset selected alarm to avoid cross-device issues
+      this._selectedAlarmId = null;
+    }
+    
     this.config = {
       title: "Alarm Clock",
       show_next_alarm: true,
@@ -242,6 +253,12 @@ class AlarmClockCard extends LitElement {
         font-size: 0.9em;
         color: var(--alarm-text-secondary);
         margin-top: 4px;
+        cursor: pointer;
+        display: inline-block;
+      }
+
+      .alarm-name:hover {
+        color: var(--alarm-primary-color);
       }
 
       .alarm-toggle {
@@ -626,17 +643,44 @@ class AlarmClockCard extends LitElement {
       }
 
       .alarm-compact.selected {
-        border-color: var(--alarm-primary-color);
-        box-shadow: 0 0 0 2px var(--alarm-primary-color);
+        box-shadow: 0 0 0 3px var(--alarm-primary-color);
       }
 
       .alarm-compact.enabled {
-        background: linear-gradient(135deg, var(--alarm-primary-color) 0%, transparent 100%);
-        border-color: var(--alarm-primary-color);
+        background: linear-gradient(135deg, rgba(3, 169, 244, 0.2) 0%, transparent 100%);
       }
 
       .alarm-compact.disabled {
         opacity: 0.6;
+      }
+
+      .alarm-compact.ringing {
+        border-color: var(--alarm-active-color);
+        background: linear-gradient(135deg, rgba(219, 68, 55, 0.3) 0%, transparent 100%);
+        animation: pulse-compact 1s infinite;
+      }
+
+      .alarm-compact.snoozed {
+        border-color: var(--alarm-snoozed-color);
+        background: linear-gradient(135deg, rgba(255, 167, 38, 0.3) 0%, transparent 100%);
+      }
+
+      @keyframes pulse-compact {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 rgba(219, 68, 55, 0.4);
+        }
+        50% {
+          box-shadow: 0 0 0 6px rgba(219, 68, 55, 0);
+        }
+      }
+
+      .alarm-compact.ringing.selected {
+        box-shadow: 0 0 0 3px var(--alarm-active-color);
+      }
+
+      .alarm-compact.snoozed.selected {
+        box-shadow: 0 0 0 3px var(--alarm-snoozed-color);
       }
 
       .alarm-compact-time {
@@ -730,6 +774,13 @@ class AlarmClockCard extends LitElement {
         border-radius: 8px;
         background: var(--alarm-card-background);
         color: var(--alarm-text-primary);
+        -moz-appearance: textfield;
+      }
+
+      .time-picker-input::-webkit-outer-spin-button,
+      .time-picker-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
       }
 
       .time-picker-input:focus {
@@ -775,6 +826,24 @@ class AlarmClockCard extends LitElement {
 
       .time-picker-button.confirm:hover {
         filter: brightness(1.1);
+      }
+
+      /* Name picker styles */
+      .name-picker-input {
+        width: 100%;
+        padding: 12px;
+        font-size: 1.2em;
+        border: 2px solid var(--divider-color, #e0e0e0);
+        border-radius: 8px;
+        background: var(--alarm-card-background);
+        color: var(--alarm-text-primary);
+        margin-bottom: 16px;
+        box-sizing: border-box;
+      }
+
+      .name-picker-input:focus {
+        outline: none;
+        border-color: var(--alarm-primary-color);
       }
     `;
   }
@@ -843,6 +912,7 @@ class AlarmClockCard extends LitElement {
           : this._renderEditorMode(alarms)}
 
         ${this._showTimePicker ? this._renderTimePicker() : ""}
+        ${this._showNamePicker ? this._renderNamePicker() : ""}
       </ha-card>
     `;
   }
@@ -871,6 +941,8 @@ class AlarmClockCard extends LitElement {
 
   _renderEditorMode(alarms) {
     if (alarms.length === 0) {
+      // Reset selection when no alarms (e.g., device changed)
+      this._selectedAlarmId = null;
       return html`
         <div class="no-alarms">No alarms configured</div>
         <button
@@ -883,14 +955,50 @@ class AlarmClockCard extends LitElement {
       `;
     }
 
-    // Ensure we have a selected alarm
-    if (!this._selectedAlarmId && alarms.length > 0) {
+    // Auto-select ringing or snoozed alarm (prioritize ringing alarms)
+    const ringingAlarm = alarms.find(
+      (a) => a.attributes.alarm_state === "ringing" || a.attributes.alarm_state === "snoozed"
+    );
+    if (ringingAlarm) {
+      this._selectedAlarmId = ringingAlarm.attributes.alarm_id;
+    }
+
+    // Check if current selection exists in the filtered alarms list
+    // This handles device switching where the old selection is from a different device
+    const selectedInList = alarms.some(
+      (a) => a.attributes.alarm_id === this._selectedAlarmId
+    );
+
+    // Reset selection if not found or not set
+    if (!this._selectedAlarmId || !selectedInList) {
       this._selectedAlarmId = alarms[0].attributes.alarm_id;
     }
 
     const selectedAlarm = alarms.find(
       (a) => a.attributes.alarm_id === this._selectedAlarmId
     );
+
+    // Fallback if selectedAlarm is still not found (shouldn't happen, but safety check)
+    if (!selectedAlarm && alarms.length > 0) {
+      this._selectedAlarmId = alarms[0].attributes.alarm_id;
+      // Use first alarm as fallback
+      return html`
+        <div class="editor-layout">
+          ${this._renderAlarmEditor(alarms[0])}
+
+          <div class="alarms-horizontal-container">
+            ${alarms.map((alarm) => this._renderAlarmCompact(alarm))}
+            <div
+              class="alarm-compact"
+              style="border-style: dashed;"
+              @click="${() => this._openAlarmSettings()}"
+            >
+              <ha-icon icon="mdi:plus" style="font-size: 2em; opacity: 0.5;"></ha-icon>
+            </div>
+          </div>
+        </div>
+      `;
+    }
 
     return html`
       <div class="editor-layout">
@@ -979,12 +1087,25 @@ class AlarmClockCard extends LitElement {
   }
 
   _getNextAlarmEntity() {
-    const entityId = this.config.entity.replace("switch.", "sensor.").replace(/_enable$/, "") + "_next_alarm";
+    // Get the entry_id of the configured entity to find the correct device's sensor
+    const configEntity = this.hass.states[this.config.entity];
+    if (!configEntity) {
+      return null;
+    }
 
-    // Try to find next_alarm sensor
+    const configEntryId = configEntity.attributes.entry_id;
+    if (!configEntryId) {
+      // Fallback: try to find by entity naming pattern
+      const entityId = this.config.entity.replace("switch.", "sensor.").replace(/_enable$/, "") + "_next_alarm";
+      return this.hass.states[entityId] || null;
+    }
+
+    // Find next_alarm sensor that belongs to the same device (same entry_id)
     const nextAlarmSensor = Object.keys(this.hass.states).find(
       (key) =>
-        key.includes("next_alarm") && key.startsWith("sensor.alarm_clock")
+        key.startsWith("sensor.") &&
+        key.includes("next_alarm") &&
+        this.hass.states[key].attributes.entry_id === configEntryId
     );
 
     return nextAlarmSensor ? this.hass.states[nextAlarmSensor] : null;
@@ -1073,7 +1194,7 @@ class AlarmClockCard extends LitElement {
                 ? html`<span class="status-badge">One-time</span>`
                 : ""}
             </div>
-            <div class="alarm-name">${attrs.alarm_name || "Alarm"}</div>
+            <div class="alarm-name" @click="${() => this._openNamePicker(alarm)}">${attrs.alarm_name || "Alarm"}</div>
             ${attrs.next_trigger
               ? html`
                   <div class="countdown">
@@ -1444,6 +1565,9 @@ class AlarmClockCard extends LitElement {
 
   _renderAlarmCompact(alarm) {
     const attrs = alarm.attributes;
+    const state = attrs.alarm_state || "armed";
+    const isRinging = state === "ringing";
+    const isSnoozed = state === "snoozed";
     const isEnabled = alarm.state.state === "on";
     const isSelected = attrs.alarm_id === this._selectedAlarmId;
     const days = attrs.days || [];
@@ -1460,7 +1584,7 @@ class AlarmClockCard extends LitElement {
 
     return html`
       <div
-        class="alarm-compact ${isEnabled ? "enabled" : "disabled"} ${isSelected ? "selected" : ""}"
+        class="alarm-compact ${isEnabled ? "enabled" : "disabled"} ${isSelected ? "selected" : ""} ${isRinging ? "ringing" : ""} ${isSnoozed ? "snoozed" : ""}"
         @click="${() => this._selectAlarm(attrs.alarm_id)}"
       >
         <div class="alarm-compact-time">${attrs.alarm_time || "00:00"}</div>
@@ -1561,7 +1685,7 @@ class AlarmClockCard extends LitElement {
           </div>
         </div>
 
-        <div class="alarm-name">${attrs.alarm_name || "Alarm"}</div>
+        <div class="alarm-name" @click="${() => this._openNamePicker(alarm)}">${attrs.alarm_name || "Alarm"}</div>
         ${attrs.next_trigger
           ? html`
               <div class="countdown">
@@ -1653,6 +1777,11 @@ class AlarmClockCard extends LitElement {
     this._showTimePicker = true;
   }
 
+  _openNamePicker(alarm) {
+    this._namePickerAlarm = alarm;
+    this._showNamePicker = true;
+  }
+
   _renderTimePicker() {
     if (!this._timePickerAlarm) return html``;
 
@@ -1667,23 +1796,29 @@ class AlarmClockCard extends LitElement {
           <div class="time-picker-header">Set Alarm Time</div>
           <div class="time-picker-inputs">
             <input
-              type="number"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]*"
               class="time-picker-input"
               id="hours-input"
-              min="0"
-              max="23"
+              maxlength="2"
               .value="${hours}"
-              @input="${(e) => this._validateTimeInput(e, 23)}"
+              @focus="${(e) => e.target.select()}"
+              @blur="${(e) => this._formatTimeInput(e, 23)}"
+              @keydown="${(e) => this._handleTimeKeydown(e, 'hours')}"
             />
             <span class="time-picker-separator">:</span>
             <input
-              type="number"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]*"
               class="time-picker-input"
               id="minutes-input"
-              min="0"
-              max="59"
+              maxlength="2"
               .value="${minutes}"
-              @input="${(e) => this._validateTimeInput(e, 59)}"
+              @focus="${(e) => e.target.select()}"
+              @blur="${(e) => this._formatTimeInput(e, 59)}"
+              @keydown="${(e) => this._handleTimeKeydown(e, 'minutes')}"
             />
           </div>
           <div class="time-picker-actions">
@@ -1705,16 +1840,130 @@ class AlarmClockCard extends LitElement {
     `;
   }
 
-  _validateTimeInput(e, max) {
-    let value = parseInt(e.target.value) || 0;
-    if (value < 0) value = 0;
-    if (value > max) value = max;
-    e.target.value = value.toString().padStart(2, "0");
+  _formatTimeInput(e, max) {
+    // Only allow digits
+    let value = e.target.value.replace(/\D/g, '');
+    let num = parseInt(value) || 0;
+    if (num < 0) num = 0;
+    if (num > max) num = max;
+    e.target.value = num.toString().padStart(2, "0");
+  }
+
+  _handleTimeKeydown(e, field) {
+    // Allow: backspace, delete, tab, escape, enter, arrow keys
+    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+    if (allowedKeys.includes(e.key)) {
+      // For arrow up/down, increment/decrement the value
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const max = field === 'hours' ? 23 : 59;
+        let value = parseInt(e.target.value) || 0;
+        if (e.key === 'ArrowUp') {
+          value = value >= max ? 0 : value + 1;
+        } else {
+          value = value <= 0 ? max : value - 1;
+        }
+        e.target.value = value.toString().padStart(2, "0");
+      }
+      return;
+    }
+    // Block non-numeric keys
+    if (!/^\d$/.test(e.key)) {
+      e.preventDefault();
+      return;
+    }
   }
 
   _closeTimePicker() {
     this._showTimePicker = false;
     this._timePickerAlarm = null;
+  }
+
+  _closeNamePicker() {
+    this._showNamePicker = false;
+    this._namePickerAlarm = null;
+  }
+
+  _renderNamePicker() {
+    if (!this._namePickerAlarm) return html``;
+
+    const currentName = this._namePickerAlarm.attributes.alarm_name || "Alarm";
+
+    return html`
+      <div class="time-picker-overlay" @click="${(e) => {
+        if (e.target === e.currentTarget) this._closeNamePicker();
+      }}">
+        <div class="time-picker-dialog">
+          <div class="time-picker-header">Edit Alarm Name</div>
+          <input
+            type="text"
+            class="name-picker-input"
+            id="name-input"
+            .value="${currentName}"
+            @focus="${(e) => e.target.select()}"
+            @keydown="${(e) => {
+              if (e.key === 'Enter') this._confirmNamePicker();
+              if (e.key === 'Escape') this._closeNamePicker();
+            }}"
+          />
+          <div class="time-picker-actions">
+            <button
+              class="time-picker-button cancel"
+              @click="${() => this._closeNamePicker()}"
+            >
+              Cancel
+            </button>
+            <button
+              class="time-picker-button confirm"
+              @click="${() => this._confirmNamePicker()}"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  _confirmNamePicker() {
+    console.log("_confirmNamePicker called", { 
+      entity_id: this._namePickerAlarm?.entity_id,
+      alarm_name: this._namePickerAlarm?.attributes?.alarm_name
+    });
+
+    const nameInput = this.shadowRoot.getElementById("name-input");
+
+    if (!nameInput) {
+      console.error("Name picker input not found");
+      return;
+    }
+
+    const newName = nameInput.value.trim();
+
+    if (!newName) {
+      alert("Please enter a name for the alarm");
+      return;
+    }
+
+    console.log("Calling set_name service", {
+      entity_id: this._namePickerAlarm.entity_id,
+      alarm_name: newName,
+    });
+
+    this.hass.callService("alarm_clock", "set_name", {
+      entity_id: this._namePickerAlarm.entity_id,
+      alarm_name: newName,
+    }).catch(err => {
+      console.error("Failed to set name:", err);
+      alert("Failed to set alarm name: " + err.message);
+    });
+
+    // Haptic feedback
+    if (navigator.vibrate) {
+      navigator.vibrate(50);
+    }
+
+    this._closeNamePicker();
   }
 
   _confirmTimePicker() {
